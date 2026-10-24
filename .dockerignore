@@ -1,0 +1,11 @@
+.git
+**/__pycache__
+**/*.pyc
+**/runs
+**/uploads
+**/*.log
+data
+*.sgy
+*.SGY
+*.segy
+*.SEGY
