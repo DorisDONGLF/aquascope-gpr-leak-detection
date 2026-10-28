@@ -1,72 +1,39 @@
-# Deploy the complete application
+# Deployment and rebuilding
 
-GitHub stores the source and trained weights. A Python/Docker host runs detection,
-review persistence and exports. The application is served from one HTTPS origin;
-no browser-to-localhost connection or GitHub Pages Python backend is required.
+## Free GitHub Pages edition
 
-## Suggested pilot: Hugging Face Docker Space
+The static application is **docs/index.html**. It contains the interface, SGY processing, PNG rendering, exports and embedded ONNX models. Python is not involved in detection on the published site.
 
-At the time of preparation (2026-10-24), creating Docker/Gradio compute Spaces
-requires a paid plan. HF PRO is listed at USD 9/month. CPU Basic is listed as
-2 vCPU / 16 GB RAM with no additional hourly hardware charge. Confirm current
-terms and prices in the account before subscribing:
+1. Publish docs/index.html and docs/.nojekyll.
+2. In **Settings â†’ Pages**, select **Deploy from a branch**, **main**, **/docs**, then **Save**.
+3. Wait for deployment and use the HTTPS URL shown by GitHub.
+4. Import a small SGY, run detection, review, refresh and export before sharing.
 
-- https://huggingface.co/pricing
-- https://huggingface.co/docs/hub/spaces-overview
-- https://huggingface.co/docs/hub/en/spaces-sdks-docker
+ONNX Runtime Web 1.31.1 is loaded from https://cdn.jsdelivr.net/npm/onnxruntime-web@1.31.1/dist/ . A dedicated Web Worker uses one-thread WebAssembly CPU. Cross-origin-isolation headers are unnecessary. First-run network access is required; this release does not install an offline service worker.
 
-1. Create the hosting account and choose its subscription yourself.
-2. Create a **public Docker Space**, using **CPU Basic**, with port **7860**.
-3. Copy this repository's files, including the two model directories, into the Space.
-4. Add this YAML header above the Space README:
+## Rebuild from source
 
-```yaml
----
-title: AquaScope GPR Leak Detection
-emoji: 🌊
-colorFrom: pink
-colorTo: gray
-sdk: docker
-app_port: 7860
----
-```
+Extract **aquascope-source.zip**. It contains browser/, tools/, server/, model_v1/ and model_v3/. Private validation surveys and review records are excluded.
 
-5. Wait for the build and check `/health` on the deployed app domain.
-6. Upload one SGY, confirm candidates and images, save a review, refresh, and
-   export CSV/DXF/SHP before sharing the final app URL.
-
-## Files and review persistence
-
-Mount a persistent writable directory at `/data` (or set `APP_DATA_DIR`). The
-server writes uploads and runs beneath it. Without persistent storage, container
-replacement/rebuilds can erase uploads and reviews. Export results before any
-restart if running a temporary pilot. A live-memory `LOCK` and one inference
-queue assume a **single container instance**; do not enable replicas without
-moving jobs and review writes to a shared database/queue.
-
-Each browser gets an HttpOnly workspace cookie. Its uploads, run list, images,
-reviews and exports are isolated from other browsers. Clearing the cookie loses
-access to that workspace. Anyone can open the app and create their own workspace;
-this version does not provide multi-expert accounts or cross-browser shared runs.
-
-The default public upload limit is 512 MB per file, configurable through
-`MAX_UPLOAD_BYTES`. Model inference is queued and uses the unchanged weights.
-For sustained public traffic, add managed ingress rate/storage limits and a
-retention policy in the hosting platform. Do not expose the local-only
-`server/app.py` entry point directly to the internet: use `public_server.py`.
-
-## Other Docker hosts
-
-Use the included Dockerfile. Configure the platform's public HTTPS domain,
-container port 7860 (or its supplied `PORT`), and a persistent volume. The optional
-`PUBLIC_ORIGINS` variable can list trusted comma-separated origins when a proxy
-uses a different internal Host header. `/health` is the health-check route.
-
-Test a local Docker build:
+Existing ONNX models are ready. After editing source modules, run:
 
 ```sh
-docker build -t aquascope-gpr .
-docker run --rm -p 7860:7860 -v aquascope-data:/data aquascope-gpr
+python tools/build_browser.py
+python -m http.server 8767 --bind 127.0.0.1
 ```
 
-No paid hosting subscription or public backend was created during packaging.
+Open http://127.0.0.1:8767/docs/ for the exact Pages bundle, or /browser/ for separate source assets with the bundled local runtime. Commit the rebuilt docs/index.html. Do not open it as a file:// document.
+
+To re-export checkpoints, install PyTorch, NumPy, ONNX and ONNX Runtime in an isolated Python environment and run `python tools/export_onnx.py`. The exporter uses opset 17, dynamic batches and float32 weights. It does not retrain or quantize. browser/models/manifest.json records checkpoint and ONNX hashes. Rebuild Pages after conversion.
+
+## Storage and limits
+
+Files, jobs, images, scores, selections and history are stored in IndexedDB under the site origin. There is no central database or cross-device synchronization. Browser quotas, memory and CPU constrain survey size. Import in batches, keep the tab open while running, and export regularly. Interrupted jobs are reported when revisiting.
+
+Google Maps is initially disabled. Its optional map view or external link sends a location to Google. Detector inputs and notes are not sent to GitHub or the CDN.
+
+## Optional Python application
+
+Install requirements.txt and run `python server/app.py --port 8765` for local use. The separate public_server.py and Dockerfile can support a hosted Python deployment with isolated per-browser workspaces and a persistent /data volume. No such host is needed for the browser version.
+
+Do not expose local-only app.py to the internet. public_server.py assumes a single container and inference queue. Shared multi-expert projects would require separate identity, authorization and synchronization support.

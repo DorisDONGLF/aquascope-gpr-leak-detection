@@ -1,25 +1,30 @@
 # AquaScope GPR Leak Detection
 
-English GPR candidate detection and expert review workspace. Uses the existing Presence v3 detector and Horizontal Localizer v1 without retraining.
+English SGY signal detection, aligned channel comparison, expert review and point export. Presence v3 and Horizontal Localizer v1 run on the visitor's computer using ONNX Runtime Web. No Python server, account or paid inference host is required for the browser edition.
 
-## Local use
+## Use the application
 
-Python 3.11+ is required. Install `requirements.txt`, then run `python server/app.py --port 8765` and open `http://127.0.0.1:8765/`.
+Open the repository's **GitHub Pages** link under Deployments / Settings â†’ Pages. Choose **Import data**, select SGY files, and **Start detection**. Review candidates and export CSV, Geolitix DXF or a Shapefile ZIP. PNG images and a review atlas ZIP are also available.
 
-Import big-endian int32 SEG-Y format 2 files. Review ranked candidates, compare merged hits by channel/swath, mark decisions, and export CSV, Geolitix DXF or Shapefile. Current review results can be cleared per run; edit history is retained.
+Use current desktop Chrome or Edge. Supported input is big-endian int32 SEG-Y sample format 2, up to 128 files per run and 512 MB per file. These are input limits, not a guarantee that every computer can handle their combined size. Import large surveys in swath-sized batches and keep the tab open during detection. The first run downloads approximately 15 MB of pinned WebAssembly runtime files from jsDelivr.
 
-## Sharing and deployment
+Files, coordinates, PNGs and reviews stay in this browser's IndexedDB. Refreshing preserves them; clearing site storage removes them. Different computers and browser profiles have independent records. There is no cross-device expert synchronization. Export your work regularly. Google Maps is optional: enabling it or opening its link shares the selected location with Google.
 
-Publishing this repository alone does not host the Python detection service. GitHub Pages can host a static interface; model inference requires a compatible runtime. See [DEPLOYMENT.md](DEPLOYMENT.md) for the complete Docker deployment, hosting options and persistence requirements. No public inference endpoint is live yet.
+No original survey files, coordinate datasets, existing results or expert notes are included in this repository.
 
-No original SGY survey files, survey coordinates, candidate images, existing detection runs, expert identities or review notes are included. Runtime uploads and results are excluded from Git. The original example data and known-point comparisons are unavailable unless supplied locally.
+## Review and export
 
-## Model interpretation
+- Compare merged-hit channels, ordered by channel number within each swath. A fixed primary candidate XY is projected onto each recorded track; other swaths are ordered by distance.
+- Decisions are **Suspected leak**, **No leak signal**, or **Uncertain**. The latest saved decision applies; edit history remains available. **Clear all reviews** resets the current run's decisions and notes while retaining history.
+- Export manually selected candidates, matching candidates from all filtered pages, or all candidates when neither selection nor filters are active. An explicit empty selection never falls back to all points.
+- SHP/DXF preserve recorded XY. Select the correct CRS for Shapefile metadata. The map assumes the confirmed Hong Kong 1980 Grid (EPSG:2326).
 
-Model logits determine review priority, not calibrated leak probability. The model finds signals similar to training examples and estimates a horizontal center. Expert review is required. Blue alignment lines show the fixed primary candidate projected onto each recorded track; dashed green lines show the AI center.
+Model logits determine review priority, not calibrated leak probability. The detector finds signals similar to training examples and estimates a horizontal center. Expert interpretation is required.
 
-## Third-party software
+## Source and deployment
 
-Proj4js is included under its original MIT license in `server/static/vendor/proj4-LICENSE.md`. The workspace visual conventions follow the AquaScope family, referencing the lab project `zhoumaneo/aquascope_gpr_postprocessing`.
+**docs/index.html** is the complete Pages application with embedded ONNX models. Source modules, build tools, original checkpoints and the optional Python application are in **aquascope-source.zip**. Extract it for the full source tree. See [DEPLOYMENT.md](DEPLOYMENT.md).
 
-For the deployable server, run `python server/public_server.py --host 127.0.0.1 --port 7860` locally, or build the included Dockerfile on a hosting platform. Different browsers use separate workspaces.
+A private five-file, two-swath validation scored 385 windows and produced five candidates. Candidate centers, XY and merged membership matched Python; maximum presence-logit difference was 0.000130. This checks the port's consistency, not accuracy on new surveys. See [VALIDATION.md](VALIDATION.md).
+
+[Third-party notices](THIRD_PARTY_NOTICES.md) and original licenses are included. The interface follows the AquaScope visual conventions used in the lab project `zhoumaneo/aquascope_gpr_postprocessing`.
