@@ -14,6 +14,14 @@ No original survey files, coordinate datasets, existing results or expert notes 
 
 ## Review and export
 
+### Inspect and mute metallic reflections
+
+Use **Inspect / mute SGY ranges** during import, or **Inspect / mute SGY** on a completed run. The tool suggests traces whose mean absolute amplitude exceeds a chosen multiple of the median of nonzero traces. Suggestions are **not** manhole classifications. Nothing is selected automatically: choose ranges confirmed as metal/manhole reflections, or enter known trace bounds, and compare the original and muted previews with the same gain.
+
+Download a separate **muted SGY** and a JSON mute log, or use the selected ranges before a new detection. Existing results and reviews are not altered. Only the selected sample payloads are zeroed; all headers, trace numbers, coordinates, vertical sample counts and file length are preserved. Mute operates on whole traces and can also hide subsurface targets below a metal cover. It does not reconstruct signals obscured by metal.
+
+The optional operation defaults off. In a private audit of all 161 confirmed positive records, applying the amplitude suggestion rule automatically would flag 105 positive centers at 3× median, 70 at 4×, and 45 at 5×. These are center-overlap counts, not measured detector error rates. This is why explicit range selection is required. The implementation follows the documented idea in [Geolitix metallic-reflection processing](https://docs.geolitix.com/layers/gpr-processing.html#remove-metallic-reflections); it is not a reproduction of Geolitix's proprietary implementation.
+
 - Compare merged-hit channels, ordered by channel number within each swath. A fixed primary candidate XY is projected onto each recorded track; other swaths are ordered by distance.
 - Decisions are **Suspected leak**, **No leak signal**, or **Uncertain**. The latest saved decision applies; edit history remains available. **Clear all reviews** resets the current run's decisions and notes while retaining history.
 - Export manually selected candidates, matching candidates from all filtered pages, or all candidates when neither selection nor filters are active. An explicit empty selection never falls back to all points.

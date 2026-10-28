@@ -19,3 +19,11 @@ These tests check agreement with the existing Python pipeline. They are not an i
 Float32 ONNX opset 17 runs in ONNX Runtime Web 1.31.1 on WebAssembly CPU. Small kernel differences can affect cases extremely close to thresholds or tied scores. These fixtures do not establish equivalence for all SGY files or browsers.
 
 PNGs preserve the full recorded vertical sample range and show 8 m / 16 m horizontal context. Canvas and Python image interpolation can differ slightly; alignment was checked numerically rather than by PNG byte equality.
+
+## Selected metallic trace mute
+
+The optional browser tool suggests amplitude outliers but only mutes explicitly selected trace ranges. Unit checks cover empty selections, threshold equality, invalid bounds, overlapping ranges, first/last traces, existing zeros, extended textual headers, and exclusion of candidates centered on muted traces. The disabled operation retains the five-file Python parity results above.
+
+A downloaded real SGY copy was checked byte by byte: for a 1,200-trace, 267-sample file, selecting traces 583–617 zeroed exactly 35 sample payloads. Every other byte, including trace headers and XY, matched the original. The original file was untouched. This is an integrity test, not a manhole identification test.
+
+All 161 confirmed positive records were checked against amplitude statistics from their original full SGYs across four dates. Positive-center overlap with automatic suggestions was 105 / 161 at 3× median, 70 / 161 at 4×, and 45 / 161 at 5×. This demonstrates that automatic amplitude suppression would remove many known target centers; it does not measure manhole discrimination or postprocessing recall. No manhole-classifier accuracy is claimed.
