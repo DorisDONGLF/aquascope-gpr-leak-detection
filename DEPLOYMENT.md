@@ -30,6 +30,8 @@ To re-export checkpoints, install PyTorch, NumPy, ONNX and ONNX Runtime in an is
 
 Files, jobs, images, scores, selections and history are stored in IndexedDB under the site origin. There is no central database or cross-device synchronization. Browser quotas, memory and CPU constrain survey size. Import in batches, keep the tab open while running, and export regularly. Interrupted jobs are reported when revisiting.
 
+The browser import guard is 1,024 files per run and 512 MB per file. Selection deduplication is linear in the number of files. The selected source size is checked against the browser's storage estimate before import; the UI also flags limited room for results using a planning allowance of 25% of source size plus 64 MB. This allowance is only a heuristic: actual PNG and result storage may be larger. If the browser cannot provide a quota estimate, import remains available and normal storage errors are reported. Large batches do not change the model or its 128-row input representation.
+
 Google Maps is initially disabled. Its optional map view or external link sends a location to Google. Detector inputs and notes are not sent to GitHub or the CDN.
 
 ## Optional Python application

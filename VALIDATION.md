@@ -27,3 +27,9 @@ The optional browser tool suggests amplitude outliers but only mutes explicitly 
 A downloaded real SGY copy was checked byte by byte: for a 1,200-trace, 267-sample file, selecting traces 583–617 zeroed exactly 35 sample payloads. Every other byte, including trace headers and XY, matched the original. The original file was untouched. This is an integrity test, not a manhole identification test.
 
 All 161 confirmed positive records were checked against amplitude statistics from their original full SGYs across four dates. Positive-center overlap with automatic suggestions was 105 / 161 at 3× median, 70 / 161 at 4×, and 45 / 161 at 5×. This demonstrates that automatic amplitude suppression would remove many known target centers; it does not measure manhole discrimination or postprocessing recall. No manhole-classifier accuracy is claimed.
+
+## Larger imports — 29 October 2026
+
+The browser guard was increased from 128 to 1,024 files while retaining the 512 MB per-file limit. Checks verify that 129 files are accepted, file 1,025 is reported as overflow rather than silently discarded, duplicate selections are removed, and quota states are handled for insufficient, limited, sufficient and unavailable estimates.
+
+An actual browser run imported **129 repeated real SGY fragments** (320 traces each; 51.9 MB in total), scored **1,161 windows**, and completed detection. Repeated observations merged into one candidate. The interface reported 8.1 seconds for the scan on the test machine. These repeated fragments validate the importer and processing path above the old cap; they are not independent survey samples or a benchmark of 1,024 full-sized SGYs.
