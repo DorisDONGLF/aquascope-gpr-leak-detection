@@ -696,6 +696,8 @@ svg.leaflet-image-layer.leaflet-interactive path {
 
 .track-map-canvas{height:420px;background:#1a1d22;isolation:isolate}.track-map-canvas:empty{height:90px}.track-map-status,.track-map-current,.track-map-note{padding:9px 17px;font-size:11px;line-height:1.6;color:#c4bdc1}.track-map-current{color:#77dbbb;padding-top:0}.track-map-note{color:#a99da5;font-size:10px}.track-map-legend{display:flex;flex-wrap:wrap;gap:7px 14px;font-size:10px;padding:8px 17px}.track-map-legend span{display:flex;align-items:center;gap:5px}.track-map-legend i{width:20px;height:3px;display:inline-block}.primary-track{background:#278bdd}.nearby-track{background:#f1a34a}.other-track{background:#a4aab0}.window-track{background:#04bc8b}.track-local-plan{margin:0 17px;font-size:12px}.track-local-svg svg{display:block;width:100%;height:auto;max-width:660px;max-height:292px;margin:0 auto;stroke:none}.track-channel-buttons{display:flex;gap:4px;flex-wrap:wrap}.track-channel-buttons button{font-size:11px}.landsd-map-logo{display:block;background:#fff;padding:4px;border-radius:3px}.landsd-map-logo img{display:block;width:115px;height:auto}.track-map-expanded{position:fixed!important;inset:15px!important;z-index:5000!important;overflow:auto!important;border:1px solid #786675;border-radius:14px;box-shadow:0 0 0 100vmax #0009}.track-map-expanded .track-map-canvas{height:calc(100vh - 265px);min-height:340px}.track-map-canvas .leaflet-tooltip{font-size:11px}.track-map-canvas .leaflet-control-attribution{max-width:85%;font-size:9px}.candidate-map .track-google{font-size:10px}
 .candidate-map-heading{flex-wrap:wrap}.candidate-map-heading h4{overflow-wrap:anywhere}
+
+.track-local-svg,.channel-plan-drawing{overflow-x:auto;scrollbar-width:thin;background:#181b20;border-radius:7px;margin:9px 0}.track-local-svg svg,.channel-plan-drawing svg{display:block;max-width:none;max-height:none;min-width:100%;height:auto;stroke:none;margin:0}.channel-plan-note{padding:8px 12px;font-size:10px;color:#a9b8c8}.swath-channel-plan{margin-top:12px}.swath-plan-details{font-size:12px;border-top:1px solid var(--line);padding-top:10px}.channel-plan-profile{font-size:10px;color:var(--muted);padding-top:7px;overflow-wrap:anywhere}.bscan-edge-tick span{display:block;width:18px;height:5px;background:#047b65;border:1px solid #d5fff0;border-radius:1px;box-shadow:0 0 2px #000}.candidate-projection-cross span{display:block;width:16px;height:16px;line-height:14px;text-align:center;font:bold 20px/14px Arial;color:#237bd0;text-shadow:0 0 2px #fff}.candidate-center-label{background:#30252e!important;color:#ffd2da!important;border:1px solid #ff5f75!important;font-weight:600;font-size:12px!important;box-shadow:0 1px 4px #0008}.candidate-center-label:before{border-top-color:#ff5f75!important}
 </style></head><body>
 <svg class="svg-defs" xmlns="http://www.w3.org/2000/svg"><defs>
 <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol><symbol id="i-wave" viewBox="0 0 24 24"><path d="M2 12h3l3-7 4 14 4-14 3 7h3"/></symbol><symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V3m-5 5 5-5 5 5M4 15v5h16v-5"/></symbol><symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol><symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v13m-5-5 5 5 5-5M4 17v4h16v-4"/></symbol><symbol id="i-expand" viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
@@ -1039,12 +1041,53 @@ svg.leaflet-image-layer.leaflet-interactive path {
  }
  return {parseTrack,hongKong,simplify,describe,footprint};
 });
+</script><script>/* Local SGY channel plans. Geometry is never displaced to separate labels. */
+(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.GprChannelPlan=api})(typeof self!=='undefined'?self:globalThis,function(){
+ 'use strict';let serial=0;
+ function nearest(paths,target){let best=null;for(let k=0;k<(paths||[]).length;k++){const path=paths[k];let s=0;for(let i=1;i<path.length;i++){const a=path[i-1],b=path[i],dx=b[0]-a[0],dy=b[1]-a[1],length=Math.hypot(dx,dy);if(!length)continue;const t=Math.max(0,Math.min(1,((target[0]-a[0])*dx+(target[1]-a[1])*dy)/(length*length))),point=[a[0]+t*dx,a[1]+t*dy],distance=Math.hypot(point[0]-target[0],point[1]-target[1]);if(!best||distance<best.distance)best={point,distance,tangent:[dx/length,dy/length],pathIndex:k,s:s+t*length};s+=length}}return best}
+ function context(paths,near,half=4){const path=paths[near.pathIndex],out=[];let s=0;for(let i=1;i<path.length;i++){const a=path[i-1],b=path[i],length=Math.hypot(b[0]-a[0],b[1]-a[1]);if(!length)continue;const lo=Math.max(s,near.s-half),hi=Math.min(s+length,near.s+half);if(hi>=lo){for(const d of [lo,hi]){const t=(d-s)/length,p=[a[0]+t*(b[0]-a[0]),a[1]+t*(b[1]-a[1])];if(!out.length||Math.hypot(out.at(-1)[0]-p[0],out.at(-1)[1]-p[1])>1e-8)out.push(p)}}s+=length}return out}
+ function labels(entries,width){const sorted=[...entries].sort((a,b)=>a.local[0]-b.local[0]||(a.track.channel??Infinity)-(b.track.channel??Infinity)||a.track.name.localeCompare(b.track.name));return sorted.map((entry,i)=>({file_id:entry.track.file_id,label:'CH'+(entry.track.channel??'?'),x:70+(width-140)*(i+.5)/Math.max(1,sorted.length),entry}))}
+ function build(data,candidate,profile,rows=[],activeRow=null,window=null){
+  const target=[candidate.x,candidate.y],primary=data.tracks.find(t=>t.file_id===candidate.file_id),basis=nearest(primary?.paths,target);if(!basis)return {available:false,reason:'Reliable primary-track geometry is unavailable.'};
+  const f=basis.tangent,n=[f[1],-f[0]],local=p=>{const dx=p[0]-target[0],dy=p[1]-target[1];return [dx*n[0]+dy*n[1],dx*f[0]+dy*f[1]]},compare=profile!==candidate.profile;
+  const entries=data.tracks.filter(t=>(t.profile===candidate.profile||t.profile===profile)&&t.paths?.length).map(track=>{const row=rows.find(r=>r.file_id===track.file_id&&r.alignment_version===4),near=nearest(track.paths,row?[row.alignment_x,row.alignment_y]:target);if(!near)return null;const point=row?[row.alignment_x,row.alignment_y]:near.point,active=track.file_id===activeRow?.file_id,path=active&&window?.available?window.path:context(track.paths,near);return {track,row,point,local:local(point),distance:row?row.alignment_distance_m:near.distance,exact:!!row,active,path,localPath:path.map(local),primary:track.profile===candidate.profile}}).filter(Boolean);
+  const primaryEntries=entries.filter(e=>e.primary),otherEntries=entries.filter(e=>!e.primary),width=Math.max(740,140+Math.max(primaryEntries.length,otherEntries.length)*42),height=460;
+  const positions=entries.flatMap(e=>[e.local,...e.localPath]);positions.push([0,0]);const xMin=Math.min(-.35,...positions.map(p=>p[0]))-.15,xMax=Math.max(.35,...positions.map(p=>p[0]))+.15,yMin=Math.min(-4,...positions.map(p=>p[1]))-.5,yMax=Math.max(4,...positions.map(p=>p[1]))+.5;
+  // Both swaths share the same XY frame. Labels have separate slots and leaders.
+  const X=p=>60+(p[0]-xMin)/(xMax-xMin)*(width-120),Y=p=>365-(p[1]-yMin)/(yMax-yMin)*260;
+  return {available:true,target,profile,compare,width,height,entries,primaryEntries,otherEntries,xMin,xMax,yMin,yMax,X,Y,local,topLabels:labels(primaryEntries,width),bottomLabels:labels(otherEntries,width),candidateScreen:[X([0,0]),Y([0,0])],coincident:entries.length-new Set(entries.map(e=>JSON.stringify(e.track.paths))).size};
+ }
+ function render(host,plan,options={}){
+  host.replaceChildren();if(!plan.available){host.textContent=plan.reason;return}
+  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg'),id='channelPlanClip'+(++serial);svg.setAttribute('viewBox',`0 0 ${plan.width} ${plan.height}`);svg.setAttribute('role','img');svg.setAttribute('aria-label',plan.compare?'Channel relationship: '+plan.profile+' and primary swath':'Primary swath channel relationship');svg.style.width=plan.width+'px';
+  const append=(tag,attrs,text,parent=svg)=>{const el=document.createElementNS(ns,tag);for(const [k,v]of Object.entries(attrs))el.setAttribute(k,v);if(text!==undefined)el.textContent=text;parent.append(el);return el},title=(el,text)=>append('title',{},text,el);
+  const defs=append('defs',{}),clip=append('clipPath',{id},undefined,defs);append('rect',{x:50,y:95,width:plan.width-100,height:280},undefined,clip);
+  append('rect',{x:0,y:0,width:plan.width,height:plan.height,fill:'#181b20'});
+  append('text',{x:18,y:22,fill:'#c5d4e2','font-size':12},'Along primary record ↑ · Across-track positions (m)');
+  append('text',{x:18,y:42,fill:'#99aaba','font-size':11},'Axes fitted independently · Label leaders point to recorded positions');
+  append('text',{x:18,y:63,fill:'#58a7ed','font-size':12},'Primary swath channels');
+  const group=append('g',{'clip-path':`url(#${id})`});
+  append('line',{x1:50,y1:plan.Y([0,0]),x2:plan.width-50,y2:plan.Y([0,0]),stroke:'#67717c','stroke-dasharray':'4 4'},undefined,group);
+  for(const e of plan.entries){const color=e.primary?'#58a7ed':'#f1a34a',d=e.localPath.map((p,i)=>(i?'L':'M')+plan.X(p).toFixed(2)+','+plan.Y(p).toFixed(2)).join(' ');const path=append('path',{d,fill:'none',stroke:e.active?'#64e4bd':color,'stroke-width':e.active?3:1.5},undefined,group);title(path,`${e.primary?'Primary':'This swath'} · CH${e.track.channel} · ${e.track.name}`);path.style.cursor='pointer';path.onclick=()=>options.onFile?.(e.track);
+   const dot=append('circle',{cx:plan.X(e.local),cy:plan.Y(e.local),r:e.active?4.5:3,fill:color},undefined,group);title(dot,`${e.track.profile} · CH${e.track.channel} · ${e.distance.toFixed(3)} m from Candidate center`);dot.style.cursor='pointer';dot.onclick=()=>options.onFile?.(e.track);
+  }
+  const band=(items,top)=>{for(const v of items){const e=v.entry,x=plan.X(e.local),y=plan.Y(e.local),labelY=top?83:410,color=e.primary?'#58a7ed':'#f1a34a';append('polyline',{points:`${x},${y} ${x},${top?97:383} ${v.x},${top?92:394}`,fill:'none',stroke:color,'stroke-width':.7,opacity:.55});const label=append('text',{x:v.x,y:labelY,fill:e.active?'#64e4bd':color,'font-size':12,'text-anchor':'middle','data-plan-channel':e.track.file_id},v.label);title(label,e.track.name);label.style.cursor='pointer';label.onclick=()=>options.onFile?.(e.track)}};
+  band(plan.topLabels,true);band(plan.bottomLabels,false);
+  const [cx,cy]=plan.candidateScreen;append('circle',{cx,cy,r:7,fill:'#ff5f75',stroke:'#fff','stroke-width':1.5,'data-candidate-center':'true'});append('rect',{x:cx-60,y:cy-30,width:120,height:20,rx:5,fill:'#30252e',stroke:'#ff5f75','stroke-width':.6});append('text',{x:cx,y:cy-16,fill:'#ffb4bf','font-size':12,'text-anchor':'middle'},'Candidate center');
+  for(const value of [plan.xMin,0,plan.xMax])append('text',{x:plan.X([value,0]),y:433,fill:'#a9b8c8','font-size':10,'text-anchor':'middle'},value.toFixed(2)+' m');
+  append('text',{x:10,y:115,fill:'#a9b8c8','font-size':10},'+'+plan.yMax.toFixed(1)+' m');append('text',{x:10,y:370,fill:'#a9b8c8','font-size':10},plan.yMin.toFixed(1)+' m');
+  if(plan.compare)append('text',{x:18,y:452,fill:'#f1a34a','font-size':11},'Lower labels: this swath · Blue: primary · Green: selected channel context');else append('text',{x:18,y:452,fill:'#a9b8c8','font-size':11},'Blue: primary channels · Green: selected channel context');
+  host.append(svg);
+  const note=document.createElement('p');note.className='channel-plan-note';note.textContent=plan.coincident?'Some channels share recorded XY. Separate labels do not imply separate antenna positions.':'Recorded source XY · The red Candidate center stays fixed when channels or swaths change.';host.append(note);
+ }
+ return {nearest,context,labels,build,render};
+});
 </script><script>/* LandsD road tiles with on-device SGY tracks and linked B-scan footprints. */
 'use strict';
 class CandidateLocationMap {
  constructor(root,options={}){
-  this.root=root;this.options=options;this.candidate=null;this.job=null;this.data=null;this.dataJob=null;this.epoch=0;this.windowVersion=0;this.enabled=false;this.rows=[];this.active=null;this.window=null;this.expanded=false;
-  root.innerHTML=`<div class="candidate-map-heading"><div><span class="eyebrow">HONG KONG ROAD MAP · SGY GEOMETRY</span><h4 class="track-map-title">Candidate / channel locations</h4></div><div class="candidate-map-actions"><button type="button" class="text-button" data-track-action="enable">Show HK road map</button><button type="button" class="text-button" data-track-action="overview">Survey overview</button><button type="button" class="text-button" data-track-action="detail">Channel detail</button><button type="button" class="text-button" data-track-action="expand">Expand map</button><a class="text-button track-google" target="_blank" rel="noopener noreferrer">Google Maps ↗</a></div></div><div class="track-map-canvas" role="region" aria-label="Hong Kong road map with SGY channel tracks"></div><div class="track-map-status" role="status">Show the road map to load tiles from Lands Department. SGY tracks and signals stay on this device.</div><div class="track-map-legend"><span><i class="primary-track"></i>Primary swath</span><span><i class="nearby-track"></i>Associated swaths</span><span><i class="other-track"></i>Other input tracks</span><span><i class="window-track"></i>Current 8 m B-scan</span><span>● Fixed candidate / blue alignment · ○ AI centers</span></div><div class="track-map-current"></div><details class="track-local-plan"><summary>Channel relationship · Recorded XY</summary><div class="track-local-svg"></div><div class="track-channel-buttons" aria-label="Primary swath map channels"></div></details><p class="track-map-note">Positions use recorded SGY source XY (EPSG:2326). Antenna lever arms and absolute positioning have not been independently verified. Coincident coordinates are drawn at the same location.</p>`;
+  this.root=root;this.options=options;this.candidate=null;this.job=null;this.data=null;this.dataJob=null;this.epoch=0;this.windowVersion=0;this.enabled=false;this.rows=[];this.active=null;this.window=null;this.expanded=false;this.plans=new Map();this.footprints=new Map();this.primaryRow=null;
+  root.innerHTML=`<div class="candidate-map-heading"><div><span class="eyebrow">HONG KONG ROAD MAP · SGY GEOMETRY</span><h4 class="track-map-title">Candidate / channel locations</h4></div><div class="candidate-map-actions"><button type="button" class="text-button" data-track-action="enable">Show HK road map</button><button type="button" class="text-button" data-track-action="overview">Survey overview</button><button type="button" class="text-button" data-track-action="detail">Channel detail</button><button type="button" class="text-button" data-track-action="expand">Expand map</button><a class="text-button track-google" target="_blank" rel="noopener noreferrer">Google Maps ↗</a></div></div><div class="track-map-canvas" role="region" aria-label="Hong Kong road map with SGY channel tracks"></div><div class="track-map-status" role="status">Show the road map to load tiles from Lands Department. SGY tracks and signals stay on this device.</div><div class="track-map-legend"><span><i class="primary-track"></i>Primary swath</span><span><i class="nearby-track"></i>Associated swaths</span><span><i class="other-track"></i>Other input tracks</span><span><i class="window-track"></i>Current 8 m B-scan</span><span>● Candidate center · ━ Window edges · ○ Channel AI centers</span></div><div class="track-map-current"></div><details class="track-local-plan"><summary>Primary swath · Channel relationship</summary><div class="track-local-svg"></div><div class="track-channel-buttons" aria-label="Primary swath map channels"></div></details><p class="track-map-note">Positions use recorded SGY source XY (EPSG:2326). Antenna lever arms and absolute positioning have not been independently verified. Coincident coordinates are drawn at the same location.</p>`;
   this.canvas=root.querySelector('.track-map-canvas');this.status=root.querySelector('.track-map-status');this.current=root.querySelector('.track-map-current');this.local=root.querySelector('.track-local-svg');this.map=null;
   root.querySelector('[data-track-action=enable]').onclick=()=>this.enable();root.querySelector('[data-track-action=overview]').onclick=()=>this.fit(true);root.querySelector('[data-track-action=detail]').onclick=()=>this.fit(false,true);root.querySelector('[data-track-action=expand]').onclick=()=>this.expand();
   root.querySelector('.track-local-plan').ontoggle=()=>this.drawLocal();
@@ -1053,19 +1096,19 @@ class CandidateLocationMap {
  ll(xy){try{const p=GprGeo.toWgs84(xy[0],xy[1]);return [p.latitude,p.longitude]}catch{return null}}
  setCandidate(candidate,job){
   const changed=this.job?.id!==job?.id||this.candidate?.candidate_id!==candidate?.candidate_id;this.job=job;this.candidate=candidate;this.root.hidden=!candidate;
-  if(!candidate){this.epoch++;this.windowVersion++;this.rows=[];this.active=null;this.window=null;this.clear();return}if(!changed){if(this.enabled&&this.dataJob===job?.id)this.draw();return}
-  this.epoch++;this.windowVersion++;this.rows=[];this.active=null;this.window=null;this.root.querySelector('.track-map-title').textContent=`${candidate.candidate_id} · Primary swath ${candidate.profile}`;
+  if(!candidate){this.epoch++;this.windowVersion++;this.rows=[];this.active=null;this.window=null;this.primaryRow=null;this.plans.clear();this.footprints.clear();this.clear();return}if(!changed){if(this.enabled&&this.dataJob===job?.id)this.draw();return}
+  this.epoch++;this.windowVersion++;this.rows=[];this.active=null;this.window=null;this.primaryRow=null;this.plans.clear();this.footprints.clear();this.root.querySelector('.track-map-title').textContent=`${candidate.candidate_id} · Primary swath ${candidate.profile}`;
   const p=this.ll([candidate.x,candidate.y]),google=this.root.querySelector('.track-google');google.hidden=!p;if(p)google.href=GprGeo.googleMapsUrl({latitude:p[0],longitude:p[1]});
   if(!p){this.status.textContent='Reliable Hong Kong Grid coordinates are unavailable for this candidate.';this.clear();return}
   if(this.enabled)this.load();
  }
  setGallery(gallery){
   const rows=[...(gallery.main_rows||[]).flatMap(r=>r.aligned_alternatives||[r]),...(gallery.groups||[]).flatMap(g=>g.rows)];
-  this.rows=[...new Map(rows.filter(r=>r.view_kind==='merged').map(r=>[r.observation_id,r])).values()];if(this.enabled&&this.dataJob===this.job?.id)this.draw();
+  this.rows=[...new Map(rows.filter(r=>r.view_kind==='merged').map(r=>[r.observation_id,r])).values()];this.ensureGeometry().catch(()=>{});if(this.enabled&&this.dataJob===this.job?.id)this.draw();
  }
  setObservation(row,scope){
-  this.active={row,scope};this.windowVersion++;this.window=null;this.current.textContent=`Viewing ${scope==='primary'?'primary':'nearby'} swath · CH${row.channel??'—'} · ${row.name} · AI trace ${row.trace_1based}`;
-  if(this.enabled&&this.dataJob===this.job?.id){this.draw();this.loadWindow()}
+  if(scope==='primary')this.primaryRow=row;this.active={row,scope};this.windowVersion++;this.window=null;this.current.textContent=`Viewing ${scope==='primary'?'primary':'nearby'} swath · CH${row.channel??'—'} · ${row.name} · AI trace ${row.trace_1based}`;
+  if(this.enabled&&this.dataJob===this.job?.id){this.draw();this.loadWindow()}else{this.drawLocal();this.footprint(row).then(()=>this.drawLocal()).catch(()=>{})}
  }
  enable(){
   if(!this.candidate||!this.ll([this.candidate.x,this.candidate.y]))return;
@@ -1086,7 +1129,7 @@ class CandidateLocationMap {
  async load(){
   const epoch=this.epoch,jobId=this.job.id;this.map.setView(this.ll([this.candidate.x,this.candidate.y]),20);this.status.textContent='Loading recorded channel geometry…';
   try{
-   const data=this.dataJob===jobId?this.data:await GprLocal.spatialData(jobId,(_,text)=>{if(this.epoch===epoch)this.status.textContent=text});
+   const data=await this.ensureGeometry();
    if(this.epoch!==epoch)return;this.data=data;this.dataJob=jobId;this.draw();this.fit(false);this.loadWindow();
    const missing=data.tracks.filter(t=>!t.paths?.length).length;this.status.textContent=`${data.tracks.length-missing} / ${data.tracks.length} recorded channel tracks loaded${missing?' · '+missing+' unavailable':''}. Click a merged hit or track to select its B-scan.`;
   }catch(e){if(this.epoch===epoch)this.status.textContent=e.message}
@@ -1105,20 +1148,25 @@ class CandidateLocationMap {
    const lines=track.paths.map(path=>path.map(p=>this.ll(p)).filter(Boolean)).filter(p=>p.length>1);if(!lines.length)continue;
    const line=L.polyline(lines,{color,weight,opacity:active?1:track.profile===main?.85:.5}).addTo(this.trackLayer);line.bindTooltip(`${track.profile} · CH${track.channel??'?'} · ${track.name}`);line.on('click',()=>this.pickFile(track));
   }
-  for(const item of this.job.map_candidates||this.job.candidates){const point=this.ll([item.x,item.y]);if(!point)continue;const chosen=item.candidate_id===candidate.candidate_id;const marker=L.circleMarker(point,{radius:chosen?7:3.5,color:chosen?'#ff5f75':'#793b52',weight:chosen?3:1,fillColor:chosen?'#ff5f75':'#b76d81',fillOpacity:chosen?1:.6}).addTo(this.pointLayer);marker.bindTooltip(`${item.candidate_id} · CH${item.channel??'?'} · trace ${item.trace_1based}`);marker.on('click',()=>{if(!chosen)this.options.onCandidate?.(item.candidate_id)})}
+  for(const item of this.job.map_candidates||this.job.candidates){if(item.candidate_id===candidate.candidate_id)continue;const point=this.ll([item.x,item.y]);if(!point)continue;const chosen=item.candidate_id===candidate.candidate_id;const marker=L.circleMarker(point,{radius:chosen?7:3.5,color:chosen?'#ff5f75':'#793b52',weight:chosen?3:1,fillColor:chosen?'#ff5f75':'#b76d81',fillOpacity:chosen?1:.6}).addTo(this.pointLayer);marker.bindTooltip(`${item.candidate_id} · CH${item.channel??'?'} · trace ${item.trace_1based}`);marker.on('click',()=>{if(!chosen)this.options.onCandidate?.(item.candidate_id)})}
   for(const row of this.rows){const point=this.ll([row.x,row.y]);if(!point)continue;const selected=this.active?.row.observation_id===row.observation_id,color=row.profile===main?'#12814f':'#d07717';const marker=L.circleMarker(point,{radius:selected?6:4,color,weight:2,fillOpacity:.15}).addTo(this.pointLayer);marker.bindTooltip(`${row.profile} · CH${row.channel} · AI trace ${row.trace_1based}`);marker.on('click',()=>this.options.onObservation?.(row))}
   this.drawWindow();this.drawLocal();
  }
  async loadWindow(){
   if(!this.active||!this.enabled||this.dataJob!==this.job.id)return;
   const version=++this.windowVersion,epoch=this.epoch,row=this.active.row;
-  try{const result=await GprLocal.spatialWindow(this.job.id,row,this.candidate);if(version!==this.windowVersion||epoch!==this.epoch)return;this.window=result;this.drawWindow();this.drawLocal()}catch(e){if(epoch===this.epoch)this.status.textContent=e.message}
+  try{const result=await this.footprint(row);if(version!==this.windowVersion||epoch!==this.epoch)return;this.window=result;this.drawWindow();this.drawLocal()}catch(e){if(epoch===this.epoch)this.status.textContent=e.message}
  }
  drawWindow(){
-  this.windowLayer?.clearLayers();const w=this.window;if(!w?.available)return;
-  const points=w.path.map(p=>this.ll(p)).filter(Boolean);L.polyline(points,{color:'#04bc8b',weight:8,opacity:.95}).addTo(this.windowLayer).bindTooltip(`Current B-scan · CH${w.channel} · 8 m context`);
-  const marker=(xy,text,color)=>{const p=this.ll(xy);if(!p)return;return L.circleMarker(p,{radius:5,color,weight:2,fillColor:'#fff',fillOpacity:1}).addTo(this.windowLayer).bindTooltip(text,{permanent:false})};
-  marker(w.left,`B-scan valid edge ${w.left_offset_m.toFixed(2)} m`,'#047b65');marker(w.right,`B-scan valid edge +${w.right_offset_m.toFixed(2)} m`,'#047b65');marker(w.center,'Fixed candidate projected onto this channel','#237bd0');if(w.ai)marker(w.ai,'AI center on this channel','#10a168');
+  this.windowLayer?.clearLayers();if(!this.windowLayer||!this.candidate)return;const w=this.window;
+  if(w?.available){
+   L.polyline(w.path.map(p=>this.ll(p)).filter(Boolean),{color:'#04bc8b',weight:8,opacity:.95}).addTo(this.windowLayer).bindTooltip(`Current B-scan · CH${w.channel} · 8 m context`);
+   for(const [xy,offset]of [[w.left,w.left_offset_m],[w.right,w.right_offset_m]]){const p=this.ll(xy);if(p)L.marker(p,{icon:L.divIcon({className:'bscan-edge-tick',html:'<span></span>',iconSize:[18,5],iconAnchor:[9,2.5]})}).addTo(this.windowLayer).bindTooltip(`B-scan valid edge ${offset.toFixed(2)} m`)}
+   const away=xy=>Math.hypot(xy[0]-this.candidate.x,xy[1]-this.candidate.y)>.02;
+   if(away(w.center))L.marker(this.ll(w.center),{icon:L.divIcon({className:'candidate-projection-cross',html:'<span>+</span>',iconSize:[16,16],iconAnchor:[8,8]})}).addTo(this.windowLayer).bindTooltip('Candidate center projected onto this channel');
+   if(w.ai&&away(w.ai))L.circleMarker(this.ll(w.ai),{radius:4,color:'#10a168',weight:2,fillOpacity:0}).addTo(this.windowLayer).bindTooltip('AI center on this channel');
+  }
+  const point=this.ll([this.candidate.x,this.candidate.y]);if(point)L.circleMarker(point,{radius:8,color:'#fff',weight:2,fillColor:'#ff5f75',fillOpacity:1}).addTo(this.windowLayer).bindTooltip('Candidate center',{permanent:true,direction:'top',offset:[0,-10],className:'candidate-center-label'});
  }
  fit(all=false,detail=false){
   if(!this.map||!this.candidate)return;let points=[];
@@ -1127,26 +1175,34 @@ class CandidateLocationMap {
   const valid=points.map(p=>this.ll(p)).filter(Boolean);if(!valid.length)return;
   if(valid.length===1||L.latLngBounds(valid).getNorthEast().equals(L.latLngBounds(valid).getSouthWest()))this.map.setView(valid[0],detail?22:20);else this.map.fitBounds(valid,{padding:[25,25],maxZoom:all?19:detail?22:20});
  }
+ async ensureGeometry(){
+  if(!this.candidate||!this.job)return null;const epoch=this.epoch,jobId=this.job.id;
+  if(this.dataJob===jobId){this.drawLocal();return this.data}
+  try{const data=await GprLocal.spatialData(jobId);if(this.epoch!==epoch)return null;this.data=data;this.dataJob=jobId;this.drawLocal();return data}catch(e){if(this.epoch===epoch){this.local.textContent=e.message;for(const [host]of this.plans)if(host.isConnected)host.querySelector('.channel-plan-drawing').textContent=e.message}throw e}
+ }
+ footprint(row){
+  const key=row.observation_id;if(!this.footprints.has(key)){const epoch=this.epoch,jobId=this.job.id,candidate=this.candidate;const entry={value:null,promise:null};entry.promise=GprLocal.spatialWindow(jobId,row,candidate).then(value=>{if(this.epoch===epoch)entry.value=value;return value}).catch(e=>{if(this.epoch===epoch)this.footprints.delete(key);throw e});this.footprints.set(key,entry)}return this.footprints.get(key).promise;
+ }
+ setPlan(host,row){
+  if(!host)return;let state=this.plans.get(host);
+  if(!state){host.innerHTML='<details class="swath-plan-details" open><summary>Channel relationship · This swath vs primary</summary><p class="channel-plan-profile"></p><div class="channel-plan-drawing"></div><div class="track-channel-buttons"></div></details>';state={row};this.plans.set(host,state)}
+  state.row=row;host.querySelector('.channel-plan-profile').textContent=`This swath: ${row.profile} · Primary: ${this.candidate.profile} · Viewing CH${row.channel}`;
+  this.ensureGeometry().then(()=>this.renderPlan(host,state)).catch(()=>{});
+  this.footprint(row).then(()=>{if(this.plans.get(host)===state&&state.row.observation_id===row.observation_id)this.renderPlan(host,state)}).catch(e=>{if(host.isConnected)host.querySelector('.channel-plan-drawing').textContent=e.message});
+ }
+ plan(profile,row){return GprChannelPlan.build(this.data,this.candidate,profile,this.rows,row,this.footprints.get(row?.observation_id)?.value)}
+ renderPlan(host,state){
+  if(!host.isConnected){this.plans.delete(host);return}if(!this.data||this.dataJob!==this.job?.id||!this.candidate)return;
+  const plan=this.plan(state.row.profile,state.row);GprChannelPlan.render(host.querySelector('.channel-plan-drawing'),plan,{onFile:t=>this.pickFile(t)});this.planButtons(host.querySelector('.track-channel-buttons'),plan,state.row.profile);
+ }
+ planButtons(host,plan,profile){
+  host.replaceChildren();if(!plan.available)return;for(const e of plan.entries.filter(v=>v.track.profile===profile).sort((a,b)=>(a.track.channel??Infinity)-(b.track.channel??Infinity))){const button=document.createElement('button');button.type='button';button.className='text-button';button.textContent=`CH${e.track.channel??'?'} · ${e.exact?'':'≈'}${e.distance.toFixed(2)} m`;button.setAttribute('aria-pressed',String(e.active));button.onclick=()=>this.pickFile(e.track);host.append(button)}
+ }
  drawLocal(){
   if(!this.candidate||!this.data||this.dataJob!==this.job?.id)return;
-  const target=[this.candidate.x,this.candidate.y],tracks=this.data.tracks.filter(t=>t.profile===this.candidate.profile&&t.paths.length),primary=tracks.find(t=>t.file_id===this.candidate.file_id),projection=this.nearest(primary?.paths||[],target);if(!projection)return;
-  const f=projection.tangent,normal=[f[1],-f[0]],local=p=>{const dx=p[0]-target[0],dy=p[1]-target[1];return [dx*normal[0]+dy*normal[1],dx*f[0]+dy*f[1]]};
-  const points=tracks.map(t=>{const near=this.nearest(t.paths,target),row=this.rows.find(r=>r.file_id===t.file_id&&r.alignment_version===4);return {track:t,p:row?{point:[row.alignment_x,row.alignment_y],distance:row.alignment_distance_m}:near,exact:!!row}}).filter(v=>v.p),span=Math.max(.35,...points.map(v=>Math.abs(local(v.p.point)[0])*1.3)),X=p=>300+local(p)[0]/span*260,Y=p=>115-local(p)[1]/4.5*90;
-  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox','0 0 600 265');svg.setAttribute('aria-label','Primary swath channel relationship in recorded coordinates');
-  const append=(tag,attrs,text)=>{const node=document.createElementNS(ns,tag);for(const [k,v]of Object.entries(attrs))node.setAttribute(k,v);if(text!==undefined)node.textContent=text;svg.append(node);return node};
-  const clip=document.createElementNS(ns,'clipPath'),rect=document.createElementNS(ns,'rect');clip.id='trackLocalClip';rect.setAttribute('x','35');rect.setAttribute('y','24');rect.setAttribute('width','530');rect.setAttribute('height','192');clip.append(rect);svg.append(clip);
-  append('rect',{x:0,y:0,width:600,height:265,fill:'#181b20'});append('line',{x1:40,y1:115,x2:560,y2:115,stroke:'#67717c','stroke-dasharray':'4 4'});append('text',{x:12,y:17,fill:'#b9c4cf','font-size':11},'Along primary record ↑ · Across-track positions in metres');append('text',{x:8,y:40,fill:'#b9c4cf','font-size':10},'+4 m');append('text',{x:8,y:205,fill:'#b9c4cf','font-size':10},'−4 m');
-  const signatures=new Set();let coincident=0;
-  for(const {track,p}of points){
-   const signature=JSON.stringify(track.paths);if(signatures.has(signature))coincident++;signatures.add(signature);
-   const selected=track.file_id===this.active?.row.file_id,paths=selected&&this.window?.available?[this.window.path]:track.paths,path=paths.map(line=>line.map((q,i)=>(i?'L':'M')+X(q).toFixed(2)+','+Y(q).toFixed(2)).join(' ')).join(' ');append('path',{d:path,fill:'none',stroke:selected?'#64e4bd':'#4d9cde','stroke-width':selected?3:1.3,'clip-path':'url(#trackLocalClip)'});
-   const x=X(p.point),y=Y(p.point),dot=append('circle',{cx:x,cy:y,r:selected?5:3.5,fill:selected?'#64e4bd':'#4d9cde'});const title=document.createElementNS(ns,'title');title.textContent=`CH${track.channel} · ${p.distance.toFixed(3)} m from fixed candidate`;dot.append(title);dot.style.cursor='pointer';dot.onclick=()=>this.pickFile(track);
-   if(!coincident||selected)append('text',{x,y:232,fill:selected?'#64e4bd':'#c8d6e5','font-size':11,'text-anchor':'middle','data-channel-label':'true'},'CH'+track.channel);
-  }
-  if(coincident){svg.querySelectorAll('[data-channel-label]').forEach(n=>n.remove());append('text',{x:300,y:232,fill:'#e6b66f','font-size':11,'text-anchor':'middle'},'Some channels share recorded XY; use the channel buttons below.')}
-  this.root.querySelector('.track-map-note').textContent='Positions use recorded SGY source XY (EPSG:2326). Antenna lever arms and absolute positioning have not been independently verified.'+(coincident?' Some channels have identical recorded tracks; individual antenna offsets cannot be resolved.':'');
-  append('circle',{cx:300,cy:115,r:5,fill:'#ff5f75'});append('text',{x:300,y:253,fill:'#b9c4cf','font-size':10,'text-anchor':'middle'},`Across-track span: ±${span.toFixed(2)} m · Red: fixed candidate${coincident?' · Coincident tracks: '+coincident+' (no offsets invented)':''}`);this.local.replaceChildren(svg);
-  const buttons=this.root.querySelector('.track-channel-buttons');buttons.replaceChildren();for(const {track,p,exact}of points.sort((a,b)=>(a.track.channel??Infinity)-(b.track.channel??Infinity))){const button=document.createElement('button');button.type='button';button.className='text-button';button.textContent=`CH${track.channel??'?'} · ${exact?'':'≈'}${p.distance.toFixed(2)} m`;button.onclick=()=>this.pickFile(track);buttons.append(button)}
+  const plan=this.plan(this.candidate.profile,this.primaryRow);GprChannelPlan.render(this.local,plan,{onFile:t=>this.pickFile(t)});this.planButtons(this.root.querySelector('.track-channel-buttons'),plan,this.candidate.profile);
+  this.root.querySelector('.track-map-note').textContent='Positions use recorded SGY source XY (EPSG:2326). Antenna lever arms and absolute positioning have not been independently verified.'+(plan.coincident?' Some channels share recorded XY; labels do not invent antenna offsets.':'');
+  for(const [host,state]of this.plans)this.renderPlan(host,state);
  }
  expand(){this.expanded=!this.expanded;this.root.classList.toggle('track-map-expanded',this.expanded);this.root.querySelector('[data-track-action=expand]').textContent=this.expanded?'Close expanded map':'Expand map';setTimeout(()=>this.map?.invalidateSize(),0)}
 }
@@ -1691,7 +1747,7 @@ class ObservationCarousel {
       if(!channels.length)return;
       const section=document.createElement('section');section.className='swath-comparison';
       section.dataset.profile=group.profile;
-      section.innerHTML=`<div class="swath-comparison-heading"><div><span class="eyebrow">${group.primary_swath?'PRIMARY SWATH · EXTRA OBSERVATIONS':'NEARBY SWATH '+(groupIndex+1)}</span><h4>${esc(group.profile)}</h4></div><span class="badge">${channels.length} channels · ${group.rows.filter(r=>r.view_kind==='merged').length} merged observations</span></div><p class="swath-group-distance">Nearest track in this swath: ${Number.isFinite(group.nearest_distance_m)?group.nearest_distance_m.toFixed(3)+' m':'Unknown'} · Browse by channel number</p><div class="swath-view-current"></div><div class="observation-stage swath-image-stage" aria-label="Swath channels: left for lower channel numbers, right for higher channel numbers"><img loading="lazy" alt="Merged observation from a nearby swath"></div><div class="swath-view-tools"><span class="swath-view-counter"></span><a class="text-button" download>PNG ↓</a></div><div class="observation-strip swath-chip-strip channel-strip" aria-label="Channels in this swath, ordered numerically"></div><label class="swath-observation-picker" hidden>Merged observations in this channel<select aria-label="Merged observations in this channel"></select></label><p class="observation-help">Drag left / ← for a lower channel; right / → for a higher channel. Only channels with hits merged into this candidate are shown; other channels are skipped.</p><details class="swath-view-context"><summary>Approx. 16 m context for this observation</summary><img loading="lazy" alt="16 m context from a nearby swath"></details>`;
+      section.innerHTML=`<div class="swath-comparison-heading"><div><span class="eyebrow">${group.primary_swath?'PRIMARY SWATH · EXTRA OBSERVATIONS':'NEARBY SWATH '+(groupIndex+1)}</span><h4>${esc(group.profile)}</h4></div><span class="badge">${channels.length} channels · ${group.rows.filter(r=>r.view_kind==='merged').length} merged observations</span></div><p class="swath-group-distance">Nearest track in this swath: ${Number.isFinite(group.nearest_distance_m)?group.nearest_distance_m.toFixed(3)+' m':'Unknown'} · Browse by channel number</p><div class="swath-view-current"></div><div class="observation-stage swath-image-stage" aria-label="Swath channels: left for lower channel numbers, right for higher channel numbers"><img loading="lazy" alt="Merged observation from a nearby swath"></div><div class="swath-view-tools"><span class="swath-view-counter"></span><a class="text-button" download>PNG ↓</a></div><div class="observation-strip swath-chip-strip channel-strip" aria-label="Channels in this swath, ordered numerically"></div><label class="swath-observation-picker" hidden>Merged observations in this channel<select aria-label="Merged observations in this channel"></select></label><p class="observation-help">Drag left / ← for a lower channel; right / → for a higher channel. Only channels with hits merged into this candidate are shown; other channels are skipped.</p><div class="swath-channel-plan"></div><details class="swath-view-context"><summary>Approx. 16 m context for this observation</summary><img loading="lazy" alt="16 m context from a nearby swath"></details>`;
       this.lower.append(section);
       const image=section.querySelector('.swath-image-stage img'),stage=section.querySelector('.swath-image-stage');
       const context=section.querySelector('.swath-view-context img'),png=section.querySelector('.swath-view-tools a');
@@ -1718,6 +1774,7 @@ class ObservationCarousel {
         observationSelect.value=String(observationIndex);
         strip.querySelectorAll('[data-swath-view]').forEach((b,i)=>{b.classList.toggle('active',i===index);b.setAttribute('aria-pressed',String(i===index))});
         if(user)revealComparisonChip(strip,index);
+        this.options.onPlan?.(section.querySelector('.swath-channel-plan'),row);
         if(notify)this.options.onView?.(row,'nearby');
       };
       strip.querySelectorAll('[data-swath-view]').forEach(b=>b.onclick=()=>show(Number(b.dataset.swathView),true));
@@ -1820,7 +1877,7 @@ function mountObservationCarousel(candidate){
  const jobId=active.id;
  observationCarousel=new ObservationCarousel($('candidateDetail'),candidate,{
   api:(suffix,body)=>api('/api/jobs/'+jobId+'/'+suffix,body),
-  asset:path=>GprLocal.asset(jobId,path),esc,zoom,onGallery:g=>candidateLocationMap?.setGallery(g),onView:(row,scope)=>candidateLocationMap?.setObservation(row,scope)
+  asset:path=>GprLocal.asset(jobId,path),esc,zoom,onGallery:g=>candidateLocationMap?.setGallery(g),onView:(row,scope)=>candidateLocationMap?.setObservation(row,scope),onPlan:(host,row)=>candidateLocationMap?.setPlan(host,row)
  });
 }
 function zoom(src,title){$('largeImage').src=src;$('imageTitle').textContent=title;$('imageDialog').showModal()}
