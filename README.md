@@ -8,7 +8,7 @@ Open the repository's **GitHub Pages** link under Deployments / Settings â†�
 
 Use current desktop Chrome or Edge. The browser edition supports big-endian int32 SEG-Y sample format 2, up to **1,024 files per run** and **512 MB per file**. Files are scanned sequentially. The importer displays the selected count, total size and estimated remaining browser storage, and checks capacity before saving the input files. A batch whose source files exceed the reported available space is rejected before import. Limited space for result images is highlighted separately; storage estimates do not guarantee that a complete run will fit. Available memory and the largest SGY also affect practical capacity. Import large surveys in batches that keep each swath's channels together, and keep the tab open during detection. The first run downloads approximately 15 MB of pinned WebAssembly runtime files from jsDelivr. The optional legacy Python edition retains its separate 128-file guard.
 
-Files, coordinates, PNGs and reviews stay in this browser's IndexedDB. Refreshing preserves them; clearing site storage removes them. Different computers and browser profiles have independent records. There is no cross-device expert synchronization. Export your work regularly. Google Maps is optional: enabling it or opening its link shares the selected location with Google.
+Files, coordinates, PNGs and reviews stay in this browser's IndexedDB. Refreshing preserves them; clearing site storage removes them. Different computers and browser profiles have independent records. There is no cross-device expert synchronization. Export your work regularly. The optional Lands Department road map loads remote tiles for the visible map area; tile requests reveal that viewport to the provider. Track vectors, SGY samples and review notes remain on-device. The separate Google Maps link shares the selected location with Google when opened.
 
 No original survey files, coordinate datasets, existing results or expert notes are included in this repository.
 
@@ -28,6 +28,20 @@ Automatic masks are **not** manhole classifications. In a private audit of all 1
 - SHP/DXF preserve recorded XY. Select the correct CRS for Shapefile metadata. The map assumes the confirmed Hong Kong 1980 Grid (EPSG:2326).
 
 Model logits determine review priority, not calibrated leak probability. The detector finds signals similar to training examples and estimates a horizontal center. Expert interpretation is required.
+
+## Linked road map and channel positions
+
+Above each candidate, **Show HK road map** enables Hong Kong Lands Department topographic road tiles and English labels. **Survey overview** fits all recorded input tracks; **Channel detail** zooms to the selected B-scan area. **Expand map** provides a larger working view. This is a road basemap, not live traffic. Native tile detail ends at zoom 20; closer views enlarge those tiles while the recorded vectors retain their coordinates.
+
+- Blue tracks identify the primary swath; orange tracks identify swaths with observations merged into this candidate; other input tracks are gray. Green marks the current B-scan's valid recorded context, normally 8 m. The fixed candidate, projected alignment and each merged observation's AI center are separate markers with tooltips.
+- Clicking a merged observation or its channel track selects the corresponding B-scan. Switching either primary or nearby-swath B-scans updates the map's current channel and context. Nearby-swath browsing preserves the upper primary image. Channels without merged hits can appear as context tracks, but no new B-scans are introduced for them. Candidate markers follow the current list filters.
+- **Channel relationship · Recorded XY** provides a metric local plan of the primary swath, with channel buttons and distances from the fixed candidate. All input channel tracks are represented where reliable source XY exists. Tracks with identical coordinates stay coincident; antenna positions are never inferred by spacing them artificially.
+
+Geometry comes from source XY headers using the confirmed EPSG:2326. Each track is split at coordinate discontinuities; background paths are simplified within 0.02 m. The selected B-scan footprint uses the aligned view's recorded segment, fractional trace anchor, actual valid edges and display reversal, without simplification. This ties the map to the same fixed primary XY used for the images. Recorded source XY does not independently establish antenna lever-arm calibration or absolute survey accuracy. Channel numbers alone do not establish physical left/right order.
+
+Existing runs load and cache geometry from their locally stored source files; rerunning detection is unnecessary. Missing or unsupported coordinates are reported instead of fabricated. Map geometry is the same for original and muted runs because mute preserves headers. Internet access is required for the basemap; map failures do not change model results or exports.
+
+Basemap API and required attribution: [LandsD Topographic Map API](https://tools.csdi.gov.hk/csdi-webpage/apidoc/TopographicMapAPI), [Map Label API](https://tools.csdi.gov.hk/csdi-webpage/apidoc/MapLabelAPI). The map displays the Lands Department logo and source notice. See [third-party notices](THIRD_PARTY_NOTICES.md).
 
 ## Source and deployment
 
