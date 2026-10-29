@@ -22,7 +22,7 @@ PNGs preserve the full recorded vertical sample range and show 8 m / 16 m horizo
 
 ## Selected metallic trace mute
 
-The optional browser tool suggests amplitude outliers but only mutes explicitly selected trace ranges. Unit checks cover empty selections, threshold equality, invalid bounds, overlapping ranges, first/last traces, existing zeros, extended textual headers, and exclusion of candidates centered on muted traces. The disabled operation retains the five-file Python parity results above.
+The manual mode suggests amplitude outliers and mutes explicitly selected ranges. Unit checks cover empty selections, threshold equality, invalid bounds, overlapping ranges, first/last traces, existing zeros, extended textual headers, and exclusion of candidates centered on muted traces. The disabled operation retains the five-file Python parity results above.
 
 A downloaded real SGY copy was checked byte by byte: for a 1,200-trace, 267-sample file, selecting traces 583–617 zeroed exactly 35 sample payloads. Every other byte, including trace headers and XY, matched the original. The original file was untouched. This is an integrity test, not a manhole identification test.
 
@@ -33,3 +33,9 @@ All 161 confirmed positive records were checked against amplitude statistics fro
 The browser guard was increased from 128 to 1,024 files while retaining the 512 MB per-file limit. Checks verify that 129 files are accepted, file 1,025 is reported as overflow rather than silently discarded, duplicate selections are removed, and quota states are handled for insufficient, limited, sufficient and unavailable estimates.
 
 An actual browser run imported **129 repeated real SGY fragments** (320 traces each; 51.9 MB in total), scored **1,161 windows**, and completed detection. Repeated observations merged into one candidate. The interface reported 8.1 seconds for the scan on the test machine. These repeated fragments validate the importer and processing path above the old cap; they are not independent survey samples or a benchmark of 1,024 full-sized SGYs.
+
+## All-file automatic mute — 29 October 2026
+
+Automatic mode requires only selecting **Muted SGY** and starting detection. A real browser run processed five SGY fragments from two swaths at the 5× starting threshold without any per-file selection. All five files had audit records: 11, 13, 4, 0 and 0 traces were muted (28 total). Independent NumPy calculations on the original files reproduced every reported range. Detection scored 381 windows and returned five candidates. The unchanged raw mode still matched Python on 385 windows and five candidates.
+
+Unit checks additionally cover automatic operation without manual ranges, independent handling of an all-zero file, the recorded automatic mode, and preservation of original bytes. These checks validate processing and provenance, not manhole classification, precision improvements or protection against missed leak targets.
